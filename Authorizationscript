@@ -1,0 +1,49 @@
+import groovy.json.JsonSlurper
+import com.kms.katalon.core.testobject.RequestObject
+import com.kms.katalon.core.webservice.keyword.WSBuiltInKeywords as WS
+import internal.GlobalVariable as GlobalVariable
+import java.util.Base64
+
+// Step 1: Get the username and password from global variables (plain text)
+String username = GlobalVariable.user1Username  // Global variable for username
+String password = GlobalVariable.user1Password  // Global variable for password
+
+// Step 2: Encrypt or encode them as needed by your backend
+// Example: Base64 encoding, but you can replace this with the custom function you need
+String encodedEmail = Base64.getEncoder().encodeToString(username.getBytes())   // Example encoding to Base64
+String encodedPassword = Base64.getEncoder().encodeToString(password.getBytes())  // Example encoding to Base64
+
+// Debugging step - print out the encoded values (check this)
+println("Encoded Email: ${encodedEmail}")
+println("Encoded Password: ${encodedPassword}")
+
+// Step 3: Prepare request body (JSON)
+def requestBody = """
+{
+    "email": "${encodedEmail}",
+    "password": "${encodedPassword}",
+    "otp": ""
+}
+"""
+
+// Step 4: Manually create the RequestObject (for the login request)
+// Instead of using findTestObject(), you can create the RequestObject directly
+RequestObject requestLogin = new RequestObject()
+requestLogin.setRestUrl("https://stagingaamaliapi.imo.gov.sa/api/account/authenticate")
+requestLogin.setHttpMethod("POST")
+requestLogin.setRestRequestBody(requestBody)
+
+// Step 5: Send the request
+def response = WS.sendRequest(requestLogin)
+
+// Step 6: Handle the response
+if (response.getStatusCode() == 200) {
+    def jsonResponse = new JsonSlurper().parseText(response.getResponseBodyContent())
+    // Extract token from response and store it in the global variable
+    GlobalVariable.authToken = jsonResponse.token
+    println("Auth Token: ${GlobalVariable.authToken}")
+} else {
+    // Handle failure scenario
+    println("Authentication failed. Status: ${response.getStatusCode()}")
+    println("Response: ${response.getResponseBodyContent()}")
+}
